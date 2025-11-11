@@ -1,0 +1,6 @@
+{
+  "python.defaultInterpreterPath": "C:\\Python4\\.venv\\Scripts\\python.exe",
+  "jupyter.kernels.filter": [
+    { "path": "C:\\Python4\\.venv\\Scripts\\python.exe" }
+  ]
+}
