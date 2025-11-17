@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from scipy import stats
 from math import sqrt
 from statsmodels.stats.power import TTestIndPower
+from sklearn.linear_model import LinearRegression   
 
 # np.random.seed(42)
 
@@ -18,7 +19,7 @@ def summary_stats(df_clean):
 
 class HealthAnalyzer:
     """
-    Beräkna andelen personer i datasetet som har sjukdomen och jämför med en simulering.
+    Klass som beräknar andelen personer i datasetet som har sjukdomen och jämför med en simulering.
     """
     def __init__(self, df_clean, disease_col="disease"):
         self.df_clean = df_clean
@@ -87,7 +88,7 @@ class HealthAnalyzer:
 
 class MeanCIAnalyzer:
     """
-    Beräknar ett konfidensintervall för medelvärdet av systolic_bp med normalapproximation och bootstrap.
+    Klass som beräknar ett konfidensintervall för medelvärdet av systolic_bp med normalapproximation och bootstrap.
     """
     def __init__(self, x, name="värde"):
         self.x = np.asarray(x, dtype=float)
@@ -144,7 +145,7 @@ class MeanCIAnalyzer:
     
 class SmokerAnalyzer:
     """
-    Testar hypotesen att rökare har ett högre värde än icke-rökare.
+    Klass som testar hypotesen att rökare har ett högre värde än icke-rökare.
     """
     def __init__(self, df_clean, value_col="systolic_bp"):
         self.df_clean = df_clean
@@ -267,4 +268,70 @@ class SmokerAnalyzer:
         ax.legend()
         plt.tight_layout()
 
+        return fig, ax
+    
+class BPAnalyzer:
+    """
+    Klass för enkel linjär regression för y_col från x_col.
+    - X är designmatris
+    - ŷ är modellens förklarande värden
+    - residualer är y - ŷ
+    """
+    def __init__(self, df_clean, x_col="age", y_col="systolic_bp"):
+        self.df_clean = df_clean
+        self.x_col = x_col
+        self.y_col = y_col
+
+        self.X = df_clean[[x_col]].values
+        self.y = df_clean[y_col].values
+
+        self.model = LinearRegression()
+        self.model.fit(self.X, self.y)
+
+        self.intercept = float(self.model.intercept_)
+        self.slope = float(self.model.coef_[0])
+        self.y_hat = self.model.predict(self.X)
+        self.residuals = self.y - self.y_hat 
+        self.r2 = float(self.model.score(self.X, self.y))
+
+    def prediction(self, x_pre):
+        """
+        Gör prediktioner för ålder
+        """
+        x_pre = np.array(x_pre).reshape(-1, 1)
+        return self.model.predict(x_pre)
+    
+    def plot_model(self):
+        """
+        Visualisering av data med regressionslinje.
+        """
+        fig, ax = plt.subplots(figsize=(7, 4))
+        ax.scatter(self.X.ravel(), self.y, alpha=0.6, label="Observerade värden")
+        x_min, x_max = float(self.X.min()), float(self.X.max())
+        x_grid = np.linspace(x_min, x_max, 200).reshape(-1, 1)
+        y_grid = self.model.predict(x_grid)
+        ax.plot(x_grid.ravel(), y_grid, linewidth=2, color="orange", label="Regressionslinje")
+
+        ax.set_xlabel(self.x_col)
+        ax.set_ylabel(self.y_col)
+        ax.set_title(f"{self.y_col} som funktion av {self.x_col}\n"
+                     f"ŷ = {self.intercept:.2f} + {self.slope:.2f}·x   (R² = {self.r2:.3f})")
+        ax.legend()
+        ax.grid(True, linestyle="--", alpha=0.5)
+        plt.tight_layout()
+        return fig, ax
+    
+    def plot_residuals(self):
+        """
+        Visualisering av residualer - slumpmoln runt noll.
+        """
+        fig, ax = plt.subplots(figsize=(7, 4))
+        ax.scatter(self.y_hat, self.residuals, alpha=0.6)
+        ax.axhline(0, color="black", linewidth=1)
+
+        ax.set_xlabel("Förklarat värde (ŷ)")
+        ax.set_ylabel("Residual (y - ŷ)")
+        ax.set_title("Residualer - slumpmoln runt 0 = bra")
+        ax.grid(True, linestyle="--", alpha=0.5)
+        plt.tight_layout()
         return fig, ax
