@@ -4,7 +4,13 @@ import matplotlib.pyplot as plt
 from scipy import stats
 from math import sqrt
 from statsmodels.stats.power import TTestIndPower
-from sklearn.linear_model import LinearRegression   
+from sklearn.linear_model import LinearRegression
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import confusion_matrix
 
 # np.random.seed(42)
 
@@ -270,12 +276,9 @@ class SmokerAnalyzer:
 
         return fig, ax
     
-class BPAnalyzer:
+class BPAnalyzer1:
     """
     Klass för enkel linjär regression för y_col från x_col.
-    - X är designmatris
-    - ŷ är modellens förklarande värden
-    - residualer är y - ŷ
     """
     def __init__(self, df_clean, x_col="age", y_col="systolic_bp"):
         self.df_clean = df_clean
@@ -335,3 +338,146 @@ class BPAnalyzer:
         ax.grid(True, linestyle="--", alpha=0.5)
         plt.tight_layout()
         return fig, ax
+
+class BPAnalyzer2:
+    """
+    Klass för multipel linjär regression.
+    """
+    def __init__(self, df_clean):
+        self.df_clean = df_clean
+
+        self.X = df_clean[["age", "weight"]].values
+        self.y = df_clean["systolic_bp"].values
+
+        self.model = LinearRegression()
+        self.model.fit(self.X, self.y)
+
+        self.intercept = float(self.model.intercept_)
+        self.slope_age, self.slope_weight = map(float, self.model.coef_)
+
+        self.y_hat = self.model.predict(self.X)
+        self.residuals = self.y - self.y_hat 
+        self.r2 = float(self.model.score(self.X, self.y))
+
+    def prediction(self, age, weight):
+        """
+        Prediktioner för ålder och vikt.
+        """
+        age = np.array(age)
+        weight = np.array(weight)
+        X_pre = np.column_stack((age, weight))
+        return self.model.predict(X_pre)
+    
+    def plot_model_age(self):
+        """
+        Visualisering av data med regressionslinje.
+        """
+        mean_weight = self.df_clean["weight"].mean()
+
+        fig, ax = plt.subplots(figsize=(7, 5))
+        ax.scatter(self.df_clean["age"], self.y, alpha=0.6, label="Observerade värden")
+        age_min, age_max = self.df_clean["age"].min(), self.df_clean["age"].max()
+        age_grid = np.linspace(age_min, age_max, 200)
+        X_grid = np.column_stack((age_grid, np.full_like(age_grid, mean_weight)))
+        y_grid = self.model.predict(X_grid)
+        ax.plot(age_grid, y_grid, linewidth=2, color="orange", label=f"Regressionslinje (vikt = {mean_weight:.1f} kg)")
+
+        ax.set_xlabel("Ålder (år)")
+        ax.set_ylabel("Systoliskt blodtryck (mmHg)")
+        ax.set_title(f"""
+                     Systoliskt blodtryck som funktion av ålder
+                     ŷ = {self.intercept:.2f} + {self.slope_age:.2f}·age + {self.slope_weight:.2f}
+                     R² = {self.r2:.3f}
+                    """)
+        ax.legend()
+        ax.grid(True, linestyle="--", alpha=0.6)
+        plt.tight_layout()
+        return fig, ax
+    
+    def plot_model_weight(self):
+        """
+        Visualisering av data med regressionslinje.
+        """
+        mean_age = self.df_clean["age"].mean()
+
+        fig, ax = plt.subplots(figsize=(7, 5))
+        ax.scatter(self.df_clean["weight"], self.y, alpha=0.6, label="Observerade värden")
+        weight_min, weight_max = self.df_clean["weight"].min(), self.df_clean["weight"].max()
+        weight_grid = np.linspace(weight_min, weight_max, 200)
+        X_grid = np.column_stack((weight_grid, np.full_like(weight_grid, mean_age)))
+        y_grid = self.model.predict(X_grid)
+        ax.plot(weight_grid, y_grid, linewidth=2, color="orange", label=f"Regressionslinje (ålder = {mean_age:.1f} år)")
+
+        ax.set_xlabel("Vikt (kg)")
+        ax.set_ylabel("Systoliskt blodtryck (mmHg)")
+        ax.set_title(f"""
+                     Systoliskt blodtryck som funktion av vikt
+                     ŷ = {self.intercept:.2f} + {self.slope_age:.2f}·age + {self.slope_weight:.2f}
+                     R² = {self.r2:.3f}
+                    """)
+        ax.legend()
+        ax.grid(True, linestyle="--", alpha=0.6)
+        plt.tight_layout()
+        return fig, ax
+    
+    def plot_residuals(self):
+        """
+        Visualisering av residualer - slumpmoln runt noll.
+        """
+        fig, ax = plt.subplots(figsize=(7, 4))
+        ax.scatter(self.y_hat, self.residuals, alpha=0.6)
+        ax.axhline(0, color="black", linewidth=1)
+
+        ax.set_xlabel("Förklarat värde (ŷ)")
+        ax.set_ylabel("Residual (y - ŷ)")
+        ax.set_title("Residualer - slumpmoln runt 0 = bra")
+        ax.grid(True, linestyle="--", alpha=0.6)
+        plt.tight_layout()
+        return fig, ax
+    
+def pc_analysis(df_clean, test_size=0.3, random_state=42, n_components=2):
+    """
+    Principal Component Analysis för att studera mönster i datan.
+    PCA reducerar datan till två huvudkomponenter innan klassificering.
+    """
+    features = ["age", "height", "weight", "systolic_bp", "cholesterol"]
+    X = df_clean[features]
+
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    
+    pca = PCA(n_components=n_components)
+    X_pca = pca.fit_transform(X_scaled)
+
+    return X_pca, pca
+    
+def pc_analysis_ML(df_clean, test_size=0.3, random_state=42, n_components=2):
+    """
+    Principal Component Analysis med machine learning.
+    """
+    features = ["age", "height", "weight", "systolic_bp", "cholesterol"]
+    X = df_clean[features]
+    y = df_clean["sex"]
+
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X)
+    
+    pca = PCA(n_components=n_components)
+    X_pca = pca.fit_transform(X_scaled)
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X_pca,
+        y,
+        test_size=test_size,
+        random_state=random_state,
+        stratify=y
+    )
+
+    model = LogisticRegression(max_iter=1000)
+    model.fit(X_train, y_train)
+
+    y_pred = model.predict(X_test)
+    cm = confusion_matrix(y_test, y_pred)
+    acc = (y_pred == y_test).mean()
+
+    return cm, acc, pca, model, X_pca, y

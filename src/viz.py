@@ -1,8 +1,7 @@
 import pandas as pd
-import numpy as np
+# import numpy as np
 import matplotlib.pyplot as plt
-# from scipy import stats
-# from statsmodels.stats.power import TTestIndPower
+import seaborn as sns
 
 def plot_bp_hist(df_clean, ax):
     """
@@ -77,3 +76,27 @@ def overview_grid(df_clean, figsize=(14, 9), suptitle="Översikt: fyra sätt att
     plt.tight_layout()
     plt.subplots_adjust(top=0.9, hspace=0.3)
     return fig, axes
+
+def plot_confusion_matrix(cm):
+    fig, ax = plt.subplots(figsize=(7, 4))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=["Kvinna", "Man"], yticklabels=["Kvinna", "Man"])
+    ax.set_xlabel("Predikterad klass")
+    ax.set_ylabel("Verklig klass")
+    ax.set_title("Förväxlingsmatris")
+    plt.tight_layout()
+    return fig, ax
+
+def plot_pca_scatter(X_pca, y):
+    """
+    Scatterplot för PCA
+    """
+    y_numeric = pd.factorize(y)[0]
+    fig, ax = plt.subplots(figsize=(7, 4))
+    scatter = ax.scatter(X_pca[:, 0], X_pca[:,1], c=y_numeric, cmap="coolwarm", edgecolor="k", s=80, alpha=0.6)
+    ax.set_xlabel("Huvudkomponent 1")
+    ax.set_ylabel("Huvudkomponent 2")
+    ax.set_title("PCA: projektion på de två huvudkomponenterna")
+    cbar = fig.colorbar(scatter, ax=ax)
+    cbar.set_label("Grupp (K/M)")
+    plt.tight_layout()
+    return fig, ax
