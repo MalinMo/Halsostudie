@@ -8,11 +8,6 @@ from sklearn.linear_model import LinearRegression
 
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import confusion_matrix
-
-# np.random.seed(42)
 
 def summary_stats(df_clean):
     """
@@ -193,7 +188,7 @@ class SmokerAnalyzer:
     
     def power_simulation(self, n_sims=8000, alpha=0.05):
         """
-        Powersimulering med samma storlek på utval (n) och s_pooled som observerat.
+        Powersimulering med samma storlek på urval (n) och s_pooled som observerat.
         """
         detections = 0
 
@@ -450,34 +445,3 @@ def pc_analysis(df_clean, test_size=0.3, random_state=42, n_components=2):
     X_pca = pca.fit_transform(X_scaled)
 
     return X_pca, pca
-    
-def pc_analysis_ML(df_clean, test_size=0.3, random_state=42, n_components=2):
-    """
-    Principal Component Analysis med machine learning.
-    """
-    features = ["age", "height", "weight", "systolic_bp", "cholesterol"]
-    X = df_clean[features]
-    y = df_clean["sex"]
-
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-    
-    pca = PCA(n_components=n_components)
-    X_pca = pca.fit_transform(X_scaled)
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        X_pca,
-        y,
-        test_size=test_size,
-        random_state=random_state,
-        stratify=y
-    )
-
-    model = LogisticRegression(max_iter=1000)
-    model.fit(X_train, y_train)
-
-    y_pred = model.predict(X_test)
-    cm = confusion_matrix(y_test, y_pred)
-    acc = (y_pred == y_test).mean()
-
-    return cm, acc, pca, model, X_pca, y

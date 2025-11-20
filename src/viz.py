@@ -1,6 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
+# import seaborn as sns
 
 def plot_bp_hist(df_clean, ax):
     """
@@ -76,15 +76,6 @@ def overview_grid(df_clean, figsize=(14, 9), suptitle="Översikt: fyra sätt att
     plt.subplots_adjust(top=0.9, hspace=0.3)
     return fig, axes
 
-def plot_confusion_matrix(cm):
-    fig, ax = plt.subplots(figsize=(7, 4))
-    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=["Kvinna", "Man"], yticklabels=["Kvinna", "Man"])
-    ax.set_xlabel("Predikterad klass")
-    ax.set_ylabel("Verklig klass")
-    ax.set_title("Förväxlingsmatris")
-    plt.tight_layout()
-    return fig, ax
-
 def plot_pca_scatter(X_pca, y):
     """
     Scatterplot för PCA
@@ -98,4 +89,17 @@ def plot_pca_scatter(X_pca, y):
     cbar = fig.colorbar(scatter, ax=ax)
     cbar.set_label("Grupp (K/M)")
     plt.tight_layout()
+    return fig, ax
+
+def plot_height_by_sex_box(df_clean):
+    """
+    Boxplot av längd uppdelat på kön.
+    """
+    fig, ax = plt.subplots(figsize=(7, 5))
+    df_clean.boxplot(column="height", by="sex", ax=ax)
+    ax.set_title("Längd per kön")
+    ax.set_xlabel("Kön")
+    ax.set_ylabel("Längd")
+    ax.grid(True, axis="y")
+    fig.suptitle("")
     return fig, ax
