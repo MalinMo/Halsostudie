@@ -399,7 +399,7 @@ class BPAnalyzer2:
         ax.scatter(self.df_clean["weight"], self.y, alpha=0.6, label="Observerade värden")
         weight_min, weight_max = self.df_clean["weight"].min(), self.df_clean["weight"].max()
         weight_grid = np.linspace(weight_min, weight_max, 200)
-        X_grid = np.column_stack((weight_grid, np.full_like(weight_grid, mean_age)))
+        X_grid = np.column_stack((np.full_like(weight_grid, mean_age), weight_grid))
         y_grid = self.model.predict(X_grid)
         ax.plot(weight_grid, y_grid, linewidth=2, color="orange", label=f"Regressionslinje (ålder = {mean_age:.1f} år)")
 
