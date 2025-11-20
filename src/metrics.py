@@ -445,3 +445,11 @@ def pc_analysis(df_clean, test_size=0.3, random_state=42, n_components=2):
     X_pca = pca.fit_transform(X_scaled)
 
     return X_pca, pca
+
+# Extra
+def get_pca_loadings(pca_model, feature_names):
+    """
+    Returnerar PCA-loadings (komponenternas riktning/viktning per variabel).
+    """
+    loadings = pca_model.components_.T
+    return pd.DataFrame(loadings, index=feature_names, columns=[f"HK{i+1}" for i in range(loadings.shape[1])])

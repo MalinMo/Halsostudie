@@ -103,3 +103,28 @@ def plot_height_by_sex_box(df_clean):
     ax.grid(True, axis="y")
     fig.suptitle("")
     return fig, ax
+
+# Extra
+def plot_pca_loadings(loadings_df, scale=1.0):
+    """
+    Visualiserar PCA-loadings som pilar i PC1-PC2-planet.
+    Varje pil visar hur mycket en variabel bidrar till HK1 och HK2.
+    """
+    fig, ax = plt.subplots(figsize=(7, 6))
+
+    ax.axhline(0, color="grey", linewidth=1)
+    ax.axvline(0, color="grey", linewidth=1)
+
+    for feature in loadings_df.index:
+        x = loadings_df.loc[feature, "HK1"]
+        y = loadings_df.loc[feature, "HK2"]
+        ax.arrow(0, 0, x, y, head_width=0.03, color="darkred", length_includes_head=True)
+        ax.text(x * 1.05, y * 1.05, feature, fontsize=10)
+
+    ax.set_xlabel("Huvudkomponent 1")
+    ax.set_ylabel("Huvudkomponent 2")
+    ax.set_title("Loadings: variablernas riktning i komponentrummet")
+    ax.set_aspect("equal", "box")
+    ax.grid(True, linestyle="--", alpha=0.4)
+    plt.tight_layout()
+    return fig, ax
