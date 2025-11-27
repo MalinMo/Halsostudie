@@ -186,8 +186,8 @@ class SmokerAnalyzer:
         """
         T-test och Welch-test.
         """
-        t_stat,  p_val  = stats.ttest_ind(self.values_smoker, self.values_non_smoker, equal_var=True)
-        t_stat_w, p_val_w = stats.ttest_ind(self.values_smoker, self.values_non_smoker, equal_var=False)
+        t_stat,  p_val  = stats.ttest_ind(self.values_smoker, self.values_non_smoker, equal_var=True, alternative="greater")
+        t_stat_w, p_val_w = stats.ttest_ind(self.values_smoker, self.values_non_smoker, equal_var=False, alternative="greater")
         return t_stat, p_val, t_stat_w, p_val_w
     
     def cohens_d(self):
