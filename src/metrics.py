@@ -25,6 +25,8 @@ class HealthAnalyzer:
     def __init__(self, df_clean, disease_col="disease"):
         self.df_clean = df_clean
         self.disease_col = disease_col
+        self.p_sim = None
+        self.n_sim = None
 
     def observed(self):
         """
@@ -38,7 +40,9 @@ class HealthAnalyzer:
         """
         p = self.observed()
         sim = np.random.choice([0, 1], size=n, p=[1 - p, p])
-        return float(sim.mean())
+        self.p_sim = float(sim.mean())
+        self.n_sim = n
+        return self.p_sim
 
     def compare(self, n_sim=1000):
         """
@@ -47,7 +51,8 @@ class HealthAnalyzer:
         p_obs = self.observed()
         n_obs = len(self.df_clean)
 
-        p_sim = self.simulated(n=n_sim)
+        p_sim = self.p_sim
+        n_sim = self.n_sim
 
         z_crit = stats.norm.ppf(0.975)
 

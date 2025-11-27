@@ -107,7 +107,7 @@ def plot_height_by_sex_box(df_clean):
 # Extra
 def plot_pca_loadings(loadings_df, scale=1.0):
     """
-    Visualiserar PCA-loadings som pilar i PC1-PC2-planet.
+    Visualiserar PCA-loadings som pilar i HK1-HK2-planet.
     Varje pil visar hur mycket en variabel bidrar till HK1 och HK2.
     """
     fig, ax = plt.subplots(figsize=(7, 6))
