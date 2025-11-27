@@ -95,6 +95,7 @@ class HealthAnalyzer:
 class MeanCIAnalyzer:
     """
     Klass som beräknar ett konfidensintervall för medelvärdet av systolic_bp med normalapproximation och bootstrap.
+    Samma medelvärde används i båda.
     """
     def __init__(self, x, name="värde"):
         self.x = np.asarray(x, dtype=float)
@@ -143,8 +144,12 @@ class MeanCIAnalyzer:
 
         ax.bar(methods, means, yerr=[lower, upper],
             capsize=8, color=["blue", "green"],alpha=0.7)
-        ax.set_title("Jämförelse av konfidensintervall för {self.name}")
+        ax.set_title(f"Jämförelse av konfidensintervall för {self.name}")
         ax.set_ylabel(self.name)
+        min_ci = min(nlo, blo)
+        max_ci = max(nhi, bhi)
+        margin = 0.2
+        ax.set_ylim(min_ci - margin, max_ci + margin)
         ax.grid(True, axis="y")
         plt.tight_layout()
         return fig, ax
@@ -157,39 +162,39 @@ class SmokerAnalyzer:
         self.df_clean = df_clean
         self.value_col = value_col
 
-        self.values_rökare = df_clean.loc[df_clean["smoker"].str.lower() == "yes", self.value_col].values
-        self.values_ickerökare = df_clean.loc[df_clean["smoker"].str.lower() == "no", self.value_col].values
+        self.values_smoker = df_clean.loc[df_clean["smoker"].str.lower() == "yes", self.value_col].values
+        self.values_non_smoker = df_clean.loc[df_clean["smoker"].str.lower() == "no", self.value_col].values
 
-        self.n_rökare = len(self.values_rökare)
-        self.n_ickerökare = len(self.values_ickerökare)
+        self.n_smoker = len(self.values_smoker)
+        self.n_non_smoker = len(self.values_non_smoker)
 
-        self.mean_rökare = self.values_rökare.mean()
-        self.mean_ickerökare = self.values_ickerökare.mean()
+        self.mean_smoker = self.values_smoker.mean()
+        self.mean_non_smoker = self.values_non_smoker.mean()
 
-        self.std_rökare = self.values_rökare.std()
-        self.std_ickerökare = self.values_ickerökare.std()
+        self.std_smoker = self.values_smoker.std()
+        self.std_non_smoker = self.values_non_smoker.std()
 
-        self.var_rökare = self.values_rökare.var(ddof=1)
-        self.var_ickerökare = self.values_ickerökare.var(ddof=1)
+        self.var_smoker = self.values_smoker.var(ddof=1)
+        self.var_non_smoker = self.values_non_smoker.var(ddof=1)
 
         self.s_pooled = np.sqrt(
-            ((self.n_rökare - 1) * self.var_rökare + (self.n_ickerökare - 1) * self.var_ickerökare)
-            / (self.n_rökare + self.n_ickerökare - 2)
+            ((self.n_smoker - 1) * self.var_smoker + (self.n_non_smoker - 1) * self.var_non_smoker)
+            / (self.n_smoker + self.n_non_smoker - 2)
             )
 
     def ttests(self):
         """
         T-test och Welch-test.
         """
-        t_stat,  p_val  = stats.ttest_ind(self.values_rökare, self.values_ickerökare, equal_var=True)
-        t_stat_w, p_val_w = stats.ttest_ind(self.values_rökare, self.values_ickerökare, equal_var=False)
+        t_stat,  p_val  = stats.ttest_ind(self.values_smoker, self.values_non_smoker, equal_var=True)
+        t_stat_w, p_val_w = stats.ttest_ind(self.values_smoker, self.values_non_smoker, equal_var=False)
         return t_stat, p_val, t_stat_w, p_val_w
     
     def cohens_d(self):
         """
         Cohen's d.
         """
-        return (self.mean_rökare - self.mean_ickerökare) / self.s_pooled
+        return (self.mean_smoker - self.mean_non_smoker) / self.s_pooled
     
     def power_simulation(self, n_sims=8000, alpha=0.05):
         """
@@ -198,9 +203,9 @@ class SmokerAnalyzer:
         detections = 0
 
         for _ in range(n_sims):
-            sim_rökare = np.random.normal(self.mean_rökare, self.s_pooled, self.n_rökare)
-            sim_ickerökare = np.random.normal(self.mean_ickerökare, self.s_pooled, self.n_ickerökare)
-            _, p = stats.ttest_ind(sim_rökare, sim_ickerökare, equal_var=False)
+            sim_smoker = np.random.normal(self.mean_smoker, self.s_pooled, self.n_smoker)
+            sim_non_smoker = np.random.normal(self.mean_non_smoker, self.s_pooled, self.n_non_smoker)
+            _, p = stats.ttest_ind(sim_smoker, sim_non_smoker, equal_var=False)
             if p < alpha:
                 detections += 1
         self.power_sim = detections / n_sims
@@ -211,10 +216,10 @@ class SmokerAnalyzer:
         Analytisk beräkning av power (ej simulering)
         """
         effect_size = abs(self.cohens_d())
-        ratio = self.n_rökare / self.n_ickerökare
+        ratio = self.n_smoker / self.n_non_smoker
         self.power_ana = TTestIndPower().power(
             effect_size=effect_size,
-            nobs1=self.n_ickerökare,
+            nobs1=self.n_non_smoker,
             alpha=alpha,
             ratio=ratio,
             alternative="two-sided",
@@ -226,7 +231,7 @@ class SmokerAnalyzer:
         Beräkning av storlek på urval för att uppnå 80% power.
         """
         effect_size = abs(self.cohens_d())
-        ratio = self.n_rökare / self.n_ickerökare
+        ratio = self.n_smoker / self.n_non_smoker
         n_needed = TTestIndPower().solve_power(
             effect_size=effect_size,
             alpha=alpha,
@@ -244,22 +249,22 @@ class SmokerAnalyzer:
         Visualisering av power vs storlek på urval.
         """
         sample_sizes = [1000, 5000, 20_000, 50_000]
-        ratio = self.n_rökare / self.n_ickerökare 
+        ratio = self.n_smoker / self.n_non_smoker 
         ss_pwr = []
 
-        for n_ickerökare in sample_sizes:
-            if n_ickerökare < 2000:
+        for n_non_smoker in sample_sizes:
+            if n_non_smoker < 2000:
                 sims = n_sims
-            elif n_ickerökare > 10_000:
+            elif n_non_smoker > 10_000:
                 sims = n_sims // 2
             else:
                 sims = n_sims // 4
-            n_rökare = int(round(n_ickerökare*ratio))
+            n_smoker = int(round(n_non_smoker*ratio))
             detections =0
             for _ in range(sims):
-                sim_rökare = np.random.normal(self.mean_rökare, self.s_pooled, n_rökare)
-                sim_ickerökare = np.random.normal(self.mean_ickerökare, self.s_pooled, n_ickerökare)
-                _, p = stats.ttest_ind(sim_rökare, sim_ickerökare, equal_var=False)
+                sim_smoker = np.random.normal(self.mean_smoker, self.s_pooled, n_smoker)
+                sim_non_smoker = np.random.normal(self.mean_non_smoker, self.s_pooled, n_non_smoker)
+                _, p = stats.ttest_ind(sim_smoker, sim_non_smoker, equal_var=False)
                 if p < alpha:
                     detections += 1
             ss_pwr.append(detections / sims)
